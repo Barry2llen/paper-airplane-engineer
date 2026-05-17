@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '@/hooks/useStore';
 import type { FlightParameters } from '@/lib/physics';
@@ -14,6 +15,26 @@ import {
 } from '@/lib/physics';
 import { calculateFlightScore } from '@/lib/scoring';
 import type { MissionId } from '@/lib/scoring';
+
+const MAX_FRAME_DELTA = 0.03;
+const FLIGHT_PLAYBACK_SPEED = 0.45;
+const TELEMETRY_REFRESH_SECONDS = 0.1;
+const LAUNCH_HEIGHT = 3;
+const GROUND_CLEARANCE = 0.08;
+const LANDING_FLARE_ALTITUDE = 1;
+const MAX_DESCENT_SPEED = 0.65;
+
+function createPanelGeometry(vertices: Array<[number, number, number]>) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices.flat(), 3));
+
+  if (vertices.length === 4) {
+    geometry.setIndex([0, 1, 2, 0, 2, 3]);
+  }
+
+  geometry.computeVertexNormals();
+  return geometry;
+}
 
 export function PaperPlane() {
   const groupRef = useRef<THREE.Group>(null);
@@ -44,7 +65,7 @@ export function PaperPlane() {
   const latestMissionRef = useRef<MissionId>(mission);
   const flightParamsRef = useRef<FlightParameters>(latestParamsRef.current);
   const flightMissionRef = useRef<MissionId>(mission);
-  const pos = useRef(new THREE.Vector3(0, 2, 0));
+  const pos = useRef(new THREE.Vector3(0, LAUNCH_HEIGHT, 0));
   const vel = useRef(new THREE.Vector3(0, 0, 0));
   const rot = useRef(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI, 0)));
   const angularVel = useRef(new THREE.Vector3(0, 0, 0));
@@ -75,7 +96,7 @@ export function PaperPlane() {
 
       flightParamsRef.current = parameters;
       flightMissionRef.current = latestMissionRef.current;
-      pos.current.set(0, 2, 0);
+      pos.current.set(0, LAUNCH_HEIGHT, 0);
       vel.current.set(0, initialSpeed * Math.sin(launchAngle), initialSpeed * Math.cos(launchAngle));
       rot.current.setFromEuler(new THREE.Euler(-launchAngle, 0, 0));
       angularVel.current.set(0, 0, 0);
@@ -91,7 +112,7 @@ export function PaperPlane() {
     }
 
     if (flightStatus === 'designing') {
-      pos.current.set(0, 2, 0);
+      pos.current.set(0, LAUNCH_HEIGHT, 0);
       vel.current.set(0, 0, 0);
       rot.current.setFromEuler(new THREE.Euler(0, Math.PI, 0));
       angularVel.current.set(0, 0, 0);
@@ -114,16 +135,17 @@ export function PaperPlane() {
   useFrame((state, delta) => {
     if (!isFlying) {
       if (groupRef.current && flightStatus === 'designing') {
-        groupRef.current.position.y = 2 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
+        groupRef.current.position.y = LAUNCH_HEIGHT + Math.sin(state.clock.elapsedTime * 2) * 0.1;
       }
       return;
     }
 
     const parameters = flightParamsRef.current;
     const activeMission = flightMissionRef.current;
-    const dt = Math.min(delta, 0.03);
+    const frameDt = Math.min(delta, MAX_FRAME_DELTA);
+    const dt = frameDt * FLIGHT_PLAYBACK_SPEED;
     timeInAir.current += dt;
-    telemetryTimer.current += dt;
+    telemetryTimer.current += frameDt;
     const speed = vel.current.length();
 
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(rot.current);
@@ -147,6 +169,23 @@ export function PaperPlane() {
     const acc = totalForce.divideScalar(mass);
 
     vel.current.add(acc.clone().multiplyScalar(dt));
+
+    const altitudeAboveGround = pos.current.y - GROUND_CLEARANCE;
+    if (altitudeAboveGround <= LANDING_FLARE_ALTITUDE && vel.current.y < 0) {
+      const flareStrength = 1 - THREE.MathUtils.clamp(altitudeAboveGround / LANDING_FLARE_ALTITUDE, 0, 1);
+      const stabilityRelief = 0.55 + (aerodynamics.stability / 100) * 0.35;
+      const descentLimit = THREE.MathUtils.lerp(2.2, MAX_DESCENT_SPEED, flareStrength * stabilityRelief);
+
+      if (vel.current.y < -descentLimit) {
+        vel.current.y = THREE.MathUtils.lerp(vel.current.y, -descentLimit, 0.65);
+      }
+
+      const horizontalDamping = 1 - Math.min(0.28, frameDt * flareStrength * 2.2);
+      vel.current.x *= horizontalDamping;
+      vel.current.z *= horizontalDamping;
+      angularVel.current.multiplyScalar(1 - Math.min(0.45, dt * flareStrength * 4));
+    }
+
     pos.current.add(vel.current.clone().multiplyScalar(dt));
 
     const stabilityFactor = aerodynamics.stability / 100;
@@ -167,7 +206,7 @@ export function PaperPlane() {
     const horizontalSpeed = Math.sqrt(vel.current.x ** 2 + vel.current.z ** 2);
     const targetError = activeMission === 'eggdrop' ? calculateTargetError(distance) : undefined;
 
-    if (telemetryTimer.current >= 0.1) {
+    if (telemetryTimer.current >= TELEMETRY_REFRESH_SECONDS) {
       telemetryTimer.current = 0;
       const estimatedImpact = calculateLandingImpact({
         verticalSpeed: vel.current.y,
@@ -201,10 +240,10 @@ export function PaperPlane() {
       });
     }
 
-    if (pos.current.y <= 0.1) {
+    if (pos.current.y <= GROUND_CLEARANCE) {
       const landingVerticalSpeed = vel.current.y;
       const landingHorizontalSpeed = Math.sqrt(vel.current.x ** 2 + vel.current.z ** 2);
-      pos.current.y = 0.1;
+      pos.current.y = GROUND_CLEARANCE;
       vel.current.set(0, 0, 0);
       angularVel.current.set(0, 0, 0);
 
@@ -257,8 +296,8 @@ export function PaperPlane() {
       groupRef.current.quaternion.copy(rot.current);
     }
 
-    if (isFlying && pos.current.y > 0.1) {
-      const idealOffset = new THREE.Vector3(5, 3, -5).applyQuaternion(rot.current);
+    if (isFlying && pos.current.y > GROUND_CLEARANCE) {
+      const idealOffset = new THREE.Vector3(5, 3.4, -5.8).applyQuaternion(rot.current);
       camera.position.lerp(pos.current.clone().add(idealOffset), 0.1);
       camera.lookAt(pos.current);
     }
@@ -266,42 +305,71 @@ export function PaperPlane() {
 
   const rightWingGroupRad = degreesToRadians(dihedralAngle);
   const leftWingGroupRad = -degreesToRadians(dihedralAngle);
+  const leftWingGeometry = useMemo(() => createPanelGeometry([
+    [0, 0.03, 0.95],
+    [-0.9, 0, -0.36],
+    [0, 0.02, -0.82],
+  ]), []);
+  const rightWingGeometry = useMemo(() => createPanelGeometry([
+    [0, 0.03, 0.95],
+    [0, 0.02, -0.82],
+    [0.9, 0, -0.36],
+  ]), []);
+  const leftBellyGeometry = useMemo(() => createPanelGeometry([
+    [0, 0.02, 0.9],
+    [0, -0.12, -0.78],
+    [-0.18, -0.06, -0.36],
+  ]), []);
+  const rightBellyGeometry = useMemo(() => createPanelGeometry([
+    [0, 0.02, 0.9],
+    [0.18, -0.06, -0.36],
+    [0, -0.12, -0.78],
+  ]), []);
+  const wingletGeometry = useMemo(() => createPanelGeometry([
+    [0, 0, 0.2],
+    [0, 0.28, -0.02],
+    [0, 0, -0.22],
+  ]), []);
 
   return (
     <group ref={groupRef}>
       <group ref={visualsRef}>
-        <mesh castShadow receiveShadow position={[0, 0.05, 0]}>
-          <boxGeometry args={[0.02, 0.2, 0.8]} />
-          <meshStandardMaterial color="#FFFFFF" />
+        <group rotation={[0, 0, leftWingGroupRad]}>
+          <mesh castShadow receiveShadow geometry={leftWingGeometry}>
+            <meshStandardMaterial color="#F8FAFC" roughness={0.58} metalness={0} side={THREE.DoubleSide} />
+          </mesh>
+          <Line points={[[0, 0.035, 0.9], [-0.84, 0.01, -0.35]]} color="#CBD5E1" lineWidth={1} />
+          {hasWinglets && (
+            <mesh castShadow receiveShadow geometry={wingletGeometry} position={[-0.86, 0.02, -0.28]} rotation={[0, 0.18, 0]}>
+              <meshStandardMaterial color="#DBEAFE" roughness={0.45} metalness={0} side={THREE.DoubleSide} />
+            </mesh>
+          )}
+        </group>
+
+        <group rotation={[0, 0, rightWingGroupRad]}>
+          <mesh castShadow receiveShadow geometry={rightWingGeometry}>
+            <meshStandardMaterial color="#EEF2F7" roughness={0.62} metalness={0} side={THREE.DoubleSide} />
+          </mesh>
+          <Line points={[[0, 0.035, 0.9], [0.84, 0.01, -0.35]]} color="#CBD5E1" lineWidth={1} />
+          {hasWinglets && (
+            <mesh castShadow receiveShadow geometry={wingletGeometry} position={[0.86, 0.02, -0.28]} rotation={[0, -0.18, 0]}>
+              <meshStandardMaterial color="#DBEAFE" roughness={0.45} metalness={0} side={THREE.DoubleSide} />
+            </mesh>
+          )}
+        </group>
+
+        <mesh castShadow receiveShadow geometry={leftBellyGeometry}>
+          <meshStandardMaterial color="#E2E8F0" roughness={0.7} metalness={0} side={THREE.DoubleSide} />
         </mesh>
 
-        <group rotation={[0, 0, leftWingGroupRad]} position={[-0.01, 0.15, 0]}>
-          <mesh castShadow receiveShadow position={[-0.4, 0, 0]} rotation={[0, 0.1, 0]}>
-            <boxGeometry args={[0.8, 0.01, 0.6]} />
-            <meshStandardMaterial color="#E0E0E0" roughness={0.2} metalness={0.1} side={THREE.DoubleSide} />
-          </mesh>
-          {hasWinglets && (
-            <mesh castShadow receiveShadow position={[-0.8, 0.1, 0]} rotation={[0, 0, Math.PI / 4]}>
-              <boxGeometry args={[0.01, 0.2, 0.3]} />
-              <meshStandardMaterial color="#3B82F6" roughness={0.3} metalness={0.8} side={THREE.DoubleSide} />
-            </mesh>
-          )}
-        </group>
+        <mesh castShadow receiveShadow geometry={rightBellyGeometry}>
+          <meshStandardMaterial color="#F1F5F9" roughness={0.68} metalness={0} side={THREE.DoubleSide} />
+        </mesh>
 
-        <group rotation={[0, 0, rightWingGroupRad]} position={[0.01, 0.15, 0]}>
-          <mesh castShadow receiveShadow position={[0.4, 0, 0]} rotation={[0, -0.1, 0]}>
-            <boxGeometry args={[0.8, 0.01, 0.6]} />
-            <meshStandardMaterial color="#E0E0E0" roughness={0.2} metalness={0.1} side={THREE.DoubleSide} />
-          </mesh>
-          {hasWinglets && (
-            <mesh castShadow receiveShadow position={[0.8, 0.1, 0]} rotation={[0, 0, -Math.PI / 4]}>
-              <boxGeometry args={[0.01, 0.2, 0.3]} />
-              <meshStandardMaterial color="#3B82F6" roughness={0.3} metalness={0.8} side={THREE.DoubleSide} />
-            </mesh>
-          )}
-        </group>
+        <Line points={[[0, 0.05, 0.96], [0, -0.02, -0.82]]} color="#94A3B8" lineWidth={1.5} />
+        <Line points={[[-0.18, -0.055, -0.36], [0, -0.12, -0.78], [0.18, -0.055, -0.36]]} color="#CBD5E1" lineWidth={1} />
 
-        <mesh position={[0, 0.2, cogPosition * -0.3]}>
+        <mesh position={[0, 0.16, cogPosition * -0.35]}>
           <sphereGeometry args={[0.05]} />
           <meshStandardMaterial color="#3B82F6" emissive="#3B82F6" emissiveIntensity={0.5} />
         </mesh>

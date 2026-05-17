@@ -5,11 +5,11 @@ export function Floor() {
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[120, 120]} />
-        <meshStandardMaterial color="#0A0B0D" roughness={0.8} />
+        <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
       </mesh>
       
-      <gridHelper args={[80, 80, '#2D3139', '#1F2229']} position={[0, 0.005, 0]} />
-      <gridHelper args={[80, 8, '#3B82F6', '#2D3139']} position={[0, 0.01, 0]} />
+      <gridHelper args={[80, 80, '#CBD5E1', '#E2E8F0']} position={[0, 0.005, 0]} />
+      <gridHelper args={[80, 8, '#2563EB', '#CBD5E1']} position={[0, 0.01, 0]} />
     </>
   );
 }

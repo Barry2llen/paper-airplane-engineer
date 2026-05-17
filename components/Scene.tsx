@@ -31,19 +31,19 @@ export function Scene() {
     <Canvas
       shadows
       dpr={[1, 1.5]}
-      camera={{ position: [-5, 3, 5], fov: 60 }}
+      camera={{ position: [-6, 4.4, 6], fov: 58 }}
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       className="outline-none"
     >
-      <color attach="background" args={['#0F1115']} />
-      <fog attach="fog" args={['#0F1115', 18, 55]} />
+      <color attach="background" args={['#EAF1F8']} />
+      <fog attach="fog" args={['#EAF1F8', 22, 62]} />
       
-      <ambientLight intensity={0.65} color="#c7d2fe" />
-      <hemisphereLight args={['#e0f2fe', '#0f172a', 1.1]} />
+      <ambientLight intensity={0.85} color="#ffffff" />
+      <hemisphereLight args={['#f8fafc', '#cbd5e1', 1.05]} />
       <directionalLight 
         position={[8, 14, 8]} 
         castShadow 
-        intensity={2} 
+        intensity={1.7} 
         color="#ffffff"
         shadow-mapSize-width={1024} 
         shadow-mapSize-height={1024}
@@ -53,7 +53,7 @@ export function Scene() {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-      <pointLight position={[-4, 4, -4]} intensity={0.8} color="#3B82F6" />
+      <pointLight position={[-4, 4, -4]} intensity={0.45} color="#2563EB" />
       
       <Floor />
       <EggdropTarget />
@@ -66,6 +66,7 @@ export function Scene() {
         enablePan={true}
         enableZoom={true}
         maxDistance={20}
+        target={[0, 2.4, 0]}
       />
     </Canvas>
   );
