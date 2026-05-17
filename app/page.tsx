@@ -4,11 +4,19 @@ import dynamic from 'next/dynamic';
 import { Sidebar } from '@/components/Sidebar';
 import { FlightStats } from '@/components/FlightStats';
 import { useStore } from '@/hooks/useStore';
+import { MISSIONS } from '@/lib/scoring';
 
 const Scene = dynamic(() => import('@/components/Scene').then(mod => mod.Scene), { ssr: false });
 
 export default function Home() {
-  const { throwPlane, isFlying, thrust } = useStore();
+  const throwPlane = useStore((state) => state.throwPlane);
+  const isFlying = useStore((state) => state.isFlying);
+  const flightStatus = useStore((state) => state.flightStatus);
+  const thrust = useStore((state) => state.thrust);
+  const throwAngle = useStore((state) => state.throwAngle);
+  const mission = useStore((state) => state.mission);
+  const currentMission = MISSIONS[mission];
+  const statusText = flightStatus === 'flying' ? '试飞中' : flightStatus === 'completed' ? '已完成' : '设计中';
 
   return (
     <div className="flex flex-col h-full w-full bg-[#0A0B0D] text-[#E0E0E0] font-sans overflow-hidden border-4 border-[#1F2229]">
@@ -20,17 +28,21 @@ export default function Home() {
             </svg>
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-widest text-[#F0F0F0]">纸飞机工程师</h1>
-            <p className="text-[10px] text-blue-500 font-mono tracking-tighter">系统状态: 最佳 | 风速: 2.4m/s 北东北</p>
+            <h1 className="text-sm font-bold tracking-widest text-[#F0F0F0]">Paper Airplane Engineer｜纸飞机工程师</h1>
+            <p className="text-[10px] text-blue-500 font-mono tracking-tighter">航空实验室沙盒 | 虚拟风洞: 在线</p>
           </div>
         </div>
         <div className="flex gap-6 items-center">
           <div className="text-right">
-            <p className="text-[10px] uppercase text-zinc-500 font-bold">当前任务</p>
-            <p className="text-xs text-amber-400">最大距离: 测试区</p>
-          </div>
-          <div className="h-8 w-[1px] bg-[#2D3139]"></div>
-          <button className="px-4 py-1 bg-white text-black text-xs font-bold rounded hover:bg-zinc-200">蓝图模式</button>
+             <p className="text-[10px] uppercase text-zinc-500 font-bold">当前任务</p>
+             <p className="text-xs text-amber-400">{currentMission.name}</p>
+           </div>
+           <div className="text-right">
+             <p className="text-[10px] uppercase text-zinc-500 font-bold">当前状态</p>
+             <p className="text-xs text-blue-300">{statusText}</p>
+           </div>
+           <div className="h-8 w-[1px] bg-[#2D3139]"></div>
+           <div className="px-4 py-1 bg-white text-black text-xs font-bold rounded">蓝图模式</div>
         </div>
       </header>
 
@@ -58,7 +70,7 @@ export default function Home() {
           <div>
             <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1">投放向量</p>
             <div className="flex items-center gap-3">
-              <span className="text-xs font-mono">角度: 12°</span>
+              <span className="text-xs font-mono">角度: {throwAngle}°</span>
               <span className="text-xs font-mono">力度: {thrust * 1.8}N</span>
             </div>
           </div>

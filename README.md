@@ -1,20 +1,41 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Paper Airplane Engineer｜纸飞机工程师
 
-# Run and deploy your AI Studio app
+## 项目简介
 
-This contains everything you need to run your app locally.
+一个面向航空科普教育的纸飞机设计沙盒游戏。玩家通过调整机翼面积、重心位置、翼梢小翼、上反角、投掷力度和投掷角度等参数，设计并试飞纸飞机，在 3D 风洞环境中完成远航、滞空和鸡蛋空投任务。
 
-View your app in AI Studio: https://ai.studio/apps/e77235b8-1451-426b-a23f-a04ba03879d9
+## 核心功能
 
-## Run Locally
+- 参数化纸飞机设计
+- 3D 物理试飞
+- 实时遥测数据
+- 任务挑战与评分
+- AI 工程师反馈
+- 航空知识解释
 
-**Prerequisites:**  Node.js
+## 技术栈
 
+- Next.js
+- React
+- TypeScript
+- Three.js / React Three Fiber
+- Zustand
+- Gemini API，可选
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 本地运行
+
+```bash
+npm install
+npm run dev
+```
+
+## 构建与检查
+
+```bash
+npm run lint
+npm run build
+```
+
+## 环境变量
+
+`GEMINI_API_KEY` 可选。没有配置时，系统会使用本地规则生成工程师反馈，现场演示不依赖远程 AI。

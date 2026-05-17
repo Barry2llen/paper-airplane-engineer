@@ -4,6 +4,27 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { PaperPlane } from './PaperPlane';
 import { Floor } from './Floor';
+import { useStore } from '@/hooks/useStore';
+import { EGGDROP_TARGET_DISTANCE } from '@/lib/physics';
+
+function EggdropTarget() {
+  const mission = useStore((state) => state.mission);
+
+  if (mission !== 'eggdrop') return null;
+
+  return (
+    <group position={[0, 0.05, EGGDROP_TARGET_DISTANCE]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh>
+        <torusGeometry args={[1.2, 0.035, 12, 72]} />
+        <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={0.45} />
+      </mesh>
+      <mesh>
+        <torusGeometry args={[0.45, 0.025, 12, 48]} />
+        <meshStandardMaterial color="#3B82F6" emissive="#3B82F6" emissiveIntensity={0.4} />
+      </mesh>
+    </group>
+  );
+}
 
 export function Scene() {
   return (
@@ -35,6 +56,7 @@ export function Scene() {
       <pointLight position={[-4, 4, -4]} intensity={0.8} color="#3B82F6" />
       
       <Floor />
+      <EggdropTarget />
       <PaperPlane />
       
       <OrbitControls 
