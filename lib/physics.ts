@@ -29,6 +29,10 @@ interface LandingImpactInput {
 }
 
 export const EGGDROP_TARGET_DISTANCE = 25;
+const AERODYNAMIC_FORCE_SCALE = 0.065;
+const STALL_START_AOA = 0.34;
+const STALL_END_AOA = 0.75;
+const MAX_LIFT_COEFFICIENT = 1.02;
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -69,16 +73,19 @@ export function calculateAerodynamics({
   const wingAreaMeters = parameters.wingArea / 10000;
   const boundedAoa = clamp(angleOfAttack, -0.75, 0.75);
   const wingRatio = clamp(parameters.wingArea / 150, 0.45, 2.1);
-  const liftCoefficient = Math.sin(boundedAoa * 2) * 2 * (0.92 + wingRatio * 0.06);
+  const stallAmount = clamp((Math.abs(boundedAoa) - STALL_START_AOA) / (STALL_END_AOA - STALL_START_AOA), 0, 1);
+  const linearLiftCoefficient = 4.2 * boundedAoa * (0.92 + wingRatio * 0.06);
+  const liftCoefficient = clamp(linearLiftCoefficient, -MAX_LIFT_COEFFICIENT, MAX_LIFT_COEFFICIENT) * (1 - stallAmount * 0.48);
   const aspectRatio = 2.15 + clamp((parameters.wingArea - 100) / 220, 0, 1) * 0.55;
   const efficiency = parameters.hasWinglets ? 0.9 : 0.76;
   const inducedDrag = (liftCoefficient * liftCoefficient) / (Math.PI * aspectRatio * efficiency);
-  const baseDrag = parameters.hasWinglets ? 0.028 : 0.044;
-  const areaDrag = Math.max(0, parameters.wingArea - 180) * 0.00018;
-  const dihedralDrag = Math.max(0, parameters.dihedralAngle - 18) * 0.0022;
+  const baseDrag = parameters.hasWinglets ? 0.026 : 0.038;
+  const areaDrag = Math.max(0, parameters.wingArea - 180) * 0.00016;
+  const dihedralDrag = Math.max(0, parameters.dihedralAngle - 18) * 0.002;
   const wingletDrag = parameters.hasWinglets ? 0.004 : 0;
-  const dragCoefficient = baseDrag + areaDrag + dihedralDrag + wingletDrag + inducedDrag;
-  const dynamicPressure = 0.5 * rho * speed * speed * wingAreaMeters;
+  const stallDrag = stallAmount * stallAmount * 0.45;
+  const dragCoefficient = baseDrag + areaDrag + dihedralDrag + wingletDrag + inducedDrag + stallDrag;
+  const dynamicPressure = 0.5 * rho * speed * speed * wingAreaMeters * AERODYNAMIC_FORCE_SCALE;
 
   return {
     lift: dynamicPressure * liftCoefficient,
@@ -107,5 +114,5 @@ export function calculateTargetError(distance: number, targetDistance = EGGDROP_
 }
 
 export function calculateInitialSpeed(thrust: number) {
-  return 2.1 * clamp(thrust, 1, 10);
+  return 3.8 + 1.3 * clamp(thrust, 1, 10);
 }

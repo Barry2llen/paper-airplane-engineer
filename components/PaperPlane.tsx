@@ -23,6 +23,7 @@ const LAUNCH_HEIGHT = 3;
 const GROUND_CLEARANCE = 0.08;
 const LANDING_FLARE_ALTITUDE = 1;
 const MAX_DESCENT_SPEED = 0.65;
+const MAX_ACCELERATION = 50;
 
 function createPanelGeometry(vertices: Array<[number, number, number]>) {
   const geometry = new THREE.BufferGeometry();
@@ -153,7 +154,7 @@ export function PaperPlane() {
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(rot.current);
     const velDir = speed > 0.1 ? vel.current.clone().normalize() : forward;
 
-    let angleOfAttack = Math.asin(Math.max(-1, Math.min(1, up.dot(velDir))));
+    let angleOfAttack = -Math.asin(Math.max(-1, Math.min(1, up.dot(velDir))));
     if (Number.isNaN(angleOfAttack)) angleOfAttack = 0;
 
     const aerodynamics = calculateAerodynamics({
@@ -161,12 +162,22 @@ export function PaperPlane() {
       speed,
       angleOfAttack,
     });
-    const lift = up.clone().multiplyScalar(aerodynamics.lift);
+    const liftDirection = new THREE.Vector3().crossVectors(velDir, right);
+    if (liftDirection.lengthSq() < 0.000001) {
+      liftDirection.copy(up);
+    } else {
+      liftDirection.normalize();
+    }
+
+    const lift = liftDirection.multiplyScalar(aerodynamics.lift);
     const drag = velDir.clone().multiplyScalar(-aerodynamics.drag);
     const mass = 0.005;
     const gravity = new THREE.Vector3(0, -9.81 * mass, 0);
     const totalForce = new THREE.Vector3().add(lift).add(drag).add(gravity);
     const acc = totalForce.divideScalar(mass);
+    if (acc.length() > MAX_ACCELERATION) {
+      acc.setLength(MAX_ACCELERATION);
+    }
 
     vel.current.add(acc.clone().multiplyScalar(dt));
 
@@ -180,7 +191,7 @@ export function PaperPlane() {
         vel.current.y = THREE.MathUtils.lerp(vel.current.y, -descentLimit, 0.65);
       }
 
-      const horizontalDamping = 1 - Math.min(0.28, frameDt * flareStrength * 2.2);
+      const horizontalDamping = 1 - Math.min(0.16, frameDt * flareStrength * 0.9);
       vel.current.x *= horizontalDamping;
       vel.current.z *= horizontalDamping;
       angularVel.current.multiplyScalar(1 - Math.min(0.45, dt * flareStrength * 4));
