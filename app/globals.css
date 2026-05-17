@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-blue: #3B82F6;
+  --color-brand-bg: #0A0B0D;
+  --color-brand-panel: #121418;
+  --color-brand-header: #15171C;
+  --color-brand-border: #2D3139;
+  --color-brand-text: #E0E0E0;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--color-brand-bg);
+  color: var(--color-brand-text);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.blink-slow {
+  animation: blink 2s ease-in-out infinite;
+}

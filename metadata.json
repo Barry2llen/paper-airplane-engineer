@@ -1,0 +1,8 @@
+{
+  "name": "纸飞机工程师",
+  "description": "一个用于设计和试飞纸飞机的 3D 沙盒游戏，通过物理模拟学习升力、阻力和重心等基础空气动力学概念。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
