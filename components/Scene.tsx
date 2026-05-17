@@ -6,6 +6,7 @@ import { PaperPlane } from './PaperPlane';
 import { Floor } from './Floor';
 import { useStore } from '@/hooks/useStore';
 import { EGGDROP_TARGET_DISTANCE } from '@/lib/physics';
+import { SCENES } from '@/lib/scenes';
 
 function EggdropTarget() {
   const mission = useStore((state) => state.mission);
@@ -27,6 +28,9 @@ function EggdropTarget() {
 }
 
 export function Scene() {
+  const sceneId = useStore((state) => state.sceneId);
+  const theme = SCENES[sceneId];
+
   return (
     <Canvas
       shadows
@@ -35,16 +39,16 @@ export function Scene() {
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       className="outline-none"
     >
-      <color attach="background" args={['#EAF1F8']} />
-      <fog attach="fog" args={['#EAF1F8', 22, 62]} />
+      <color attach="background" args={[theme.background]} />
+      <fog attach="fog" args={[theme.fog, 22, 62]} />
       
-      <ambientLight intensity={0.85} color="#ffffff" />
-      <hemisphereLight args={['#f8fafc', '#cbd5e1', 1.05]} />
+      <ambientLight intensity={theme.ambientIntensity} color={theme.ambient} />
+      <hemisphereLight args={[theme.hemisphereSky, theme.hemisphereGround, theme.hemisphereIntensity]} />
       <directionalLight 
         position={[8, 14, 8]} 
         castShadow 
-        intensity={1.7} 
-        color="#ffffff"
+        intensity={theme.sunIntensity} 
+        color={theme.sun}
         shadow-mapSize-width={1024} 
         shadow-mapSize-height={1024}
         shadow-camera-far={50}
@@ -53,9 +57,9 @@ export function Scene() {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-      <pointLight position={[-4, 4, -4]} intensity={0.45} color="#2563EB" />
+      <pointLight position={[-4, 4, -4]} intensity={theme.pointIntensity} color={theme.point} />
       
-      <Floor />
+      <Floor theme={theme} />
       <EggdropTarget />
       <PaperPlane />
       

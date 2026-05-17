@@ -1,15 +1,17 @@
 'use client';
 
-export function Floor() {
+import type { SceneTheme } from '@/lib/scenes';
+
+export function Floor({ theme }: { theme: SceneTheme }) {
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[120, 120]} />
-        <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
+        <meshStandardMaterial color={theme.floor} roughness={0.85} />
       </mesh>
       
-      <gridHelper args={[80, 80, '#CBD5E1', '#E2E8F0']} position={[0, 0.005, 0]} />
-      <gridHelper args={[80, 8, '#2563EB', '#CBD5E1']} position={[0, 0.01, 0]} />
+      <gridHelper key={`${theme.id}-minor-grid`} args={[80, 80, theme.gridMajor, theme.gridMinor]} position={[0, 0.005, 0]} />
+      <gridHelper key={`${theme.id}-major-grid`} args={[80, 8, theme.gridAccent, theme.gridMajor]} position={[0, 0.01, 0]} />
     </>
   );
 }

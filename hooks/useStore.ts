@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import type { FlightParameters } from '@/lib/physics';
 import type { FlightGrade, FlightResult, MissionId } from '@/lib/scoring';
+import type { SceneId } from '@/lib/scenes';
 
 const DEFAULT_PARAMETERS: FlightParameters = {
   wingArea: 150,
@@ -33,6 +34,7 @@ type FlightLog = {
 
 interface GameState extends FlightParameters {
   mission: MissionId;
+  sceneId: SceneId;
 
   isFlying: boolean;
   flightStatus: 'designing' | 'flying' | 'completed';
@@ -54,6 +56,7 @@ interface GameState extends FlightParameters {
   flightLogs: FlightLog[];
 
   setMission: (mission: MissionId) => void;
+  setSceneId: (sceneId: SceneId) => void;
   setWingArea: (val: number) => void;
   setCogPosition: (val: number) => void;
   setHasWinglets: (val: boolean) => void;
@@ -99,6 +102,7 @@ function resetTelemetry() {
 export const useStore = create<GameState>((set, get) => ({
   ...DEFAULT_PARAMETERS,
   mission: 'distance',
+  sceneId: 'lab',
 
   isFlying: false,
   flightStatus: 'designing',
@@ -108,6 +112,7 @@ export const useStore = create<GameState>((set, get) => ({
   ...resetTelemetry(),
 
   setMission: (mission) => set({ mission }),
+  setSceneId: (sceneId) => set({ sceneId }),
   setWingArea: (val) => set({ wingArea: val }),
   setCogPosition: (val) => set({ cogPosition: val }),
   setHasWinglets: (val) => set({ hasWinglets: val }),

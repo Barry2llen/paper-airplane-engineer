@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { FlightStats } from '@/components/FlightStats';
 import { useStore } from '@/hooks/useStore';
 import { MISSIONS } from '@/lib/scoring';
+import { SCENES } from '@/lib/scenes';
 
 const Scene = dynamic(() => import('@/components/Scene').then(mod => mod.Scene), { ssr: false });
 
@@ -15,7 +16,9 @@ export default function Home() {
   const thrust = useStore((state) => state.thrust);
   const throwAngle = useStore((state) => state.throwAngle);
   const mission = useStore((state) => state.mission);
+  const sceneId = useStore((state) => state.sceneId);
   const currentMission = MISSIONS[mission];
+  const currentScene = SCENES[sceneId];
   const statusText = flightStatus === 'flying' ? '试飞中' : flightStatus === 'completed' ? '已完成' : '设计中';
 
   return (
@@ -41,6 +44,10 @@ export default function Home() {
              <p className="text-[10px] uppercase text-slate-500 font-bold">当前状态</p>
              <p className="text-xs text-blue-700">{statusText}</p>
            </div>
+           <div className="text-right">
+             <p className="text-[10px] uppercase text-slate-500 font-bold">当前场景</p>
+             <p className="text-xs" style={{ color: currentScene.swatch }}>{currentScene.name}</p>
+           </div>
            <div className="h-8 w-[1px] bg-[#D7DEE8]"></div>
            <div className="px-4 py-1 bg-blue-600 text-white text-xs font-bold rounded shadow-sm">蓝图模式</div>
         </div>
@@ -49,7 +56,7 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden z-0 max-lg:flex-col max-lg:overflow-visible">
         <Sidebar />
 
-        <main className="flex-1 bg-[#EAF1F8] relative flex items-center justify-center cursor-crosshair max-lg:min-h-[420px] max-lg:flex-none">
+        <main className="flex-1 relative flex items-center justify-center cursor-crosshair max-lg:min-h-[420px] max-lg:flex-none" style={{ backgroundColor: currentScene.background }}>
           <div className="absolute inset-0 opacity-50 pointer-events-none" style={{backgroundImage: 'radial-gradient(#93C5FD 1px, transparent 1px)', backgroundSize: '24px 24px'}}></div>
           
           <div className="absolute bottom-8 left-8 flex flex-col gap-1 pointer-events-none z-10">

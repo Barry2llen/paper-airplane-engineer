@@ -4,14 +4,21 @@ import type { ReactNode } from 'react';
 import { useStore } from '@/hooks/useStore';
 import { MISSION_LIST } from '@/lib/scoring';
 import type { MissionId } from '@/lib/scoring';
+import { SCENE_LIST } from '@/lib/scenes';
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4">{children}</h2>;
 }
 
+function SceneSwatch({ color }: { color: string }) {
+  return <span className="h-4 w-4 shrink-0 rounded-sm border border-white shadow-[0_0_0_1px_rgba(15,23,42,0.12)]" style={{ backgroundColor: color }} />;
+}
+
 export function Sidebar() {
   const mission = useStore((state) => state.mission);
   const setMission = useStore((state) => state.setMission);
+  const sceneId = useStore((state) => state.sceneId);
+  const setSceneId = useStore((state) => state.setSceneId);
   const wingArea = useStore((state) => state.wingArea);
   const setWingArea = useStore((state) => state.setWingArea);
   const cogPosition = useStore((state) => state.cogPosition);
@@ -45,6 +52,30 @@ export function Sidebar() {
                   <span className={`h-2 w-2 rounded-full ${selected ? 'bg-blue-500' : 'bg-slate-300'}`} />
                 </div>
                 <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{item.target}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mb-7">
+        <SectionTitle>场景环境</SectionTitle>
+        <div className="grid grid-cols-3 gap-2">
+          {SCENE_LIST.map((scene) => {
+            const selected = sceneId === scene.id;
+            return (
+              <button
+                key={scene.id}
+                onClick={() => setSceneId(scene.id)}
+                title={scene.description}
+                className={`min-h-[76px] rounded border p-2 text-left transition-colors ${selected ? 'border-blue-500 bg-blue-50 shadow-[0_8px_20px_rgba(37,99,235,0.10)]' : 'border-[#D7DEE8] bg-white hover:border-blue-300 hover:bg-blue-50/50'}`}
+                aria-pressed={selected}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <SceneSwatch color={scene.swatch} />
+                  <span className={`h-2 w-2 rounded-full ${selected ? 'bg-blue-500' : 'bg-slate-300'}`} />
+                </div>
+                <span className="block text-[10px] font-bold leading-tight text-slate-900">{scene.name}</span>
               </button>
             );
           })}
