@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { PaperPlane } from './PaperPlane';
 import { Floor } from './Floor';
+import { DistantScenery } from './DistantScenery';
 import { useStore } from '@/hooks/useStore';
 import { EGGDROP_TARGET_DISTANCE } from '@/lib/physics';
 import { SCENES } from '@/lib/scenes';
@@ -60,6 +61,7 @@ export function Scene() {
       <pointLight position={[-4, 4, -4]} intensity={theme.pointIntensity} color={theme.point} />
       
       <Floor theme={theme} />
+      <DistantScenery sceneId={sceneId} />
       <EggdropTarget />
       <PaperPlane />
       
